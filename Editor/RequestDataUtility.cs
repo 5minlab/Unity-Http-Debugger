@@ -15,7 +15,13 @@ namespace QuickEye.WebTools.Editor
         {
             var url = req.RequestUri.OriginalString;
             var type = HttpMethodTypeUtil.FromHttpMethod(req.Method);
-            var headers = ContentHeadersToList(req.Content?.Headers);
+
+            var headers = new List<Header>();
+            var headers_http = HeadersToList(req.Headers);
+            var headers_content = HeadersToList(req.Content?.Headers);
+            if (headers_http != null) { headers.AddRange(headers_http); }
+            if (headers_content != null) { headers.AddRange(headers_content); }
+
             var result = ScriptableObject.CreateInstance<T>();
             result.url = url;
             result.type = type;
@@ -31,7 +37,14 @@ namespace QuickEye.WebTools.Editor
             hdRequest.lastResponse = new ResponseData((int)res.StatusCode);
             if (res.Content != null)
                 hdRequest.lastResponse.content = await res.Content.ReadAsStringAsync();
-            hdRequest.lastResponse.headers = ContentHeadersToList(res.Content?.Headers);
+
+            var headers = new List<Header>();
+            var headers_http = HeadersToList(res.Headers);
+            var headers_content = HeadersToList(res.Content?.Headers);
+            if (headers_http != null) { headers.AddRange(headers_http); }
+            if (headers_content != null) { headers.AddRange(headers_content); }
+
+            hdRequest.lastResponse.headers = headers;
             return hdRequest;
         }
 
@@ -54,14 +67,14 @@ namespace QuickEye.WebTools.Editor
         public static ResponseData ResponseFromUnityWebRequest(UnityWebRequest req)
         {
             var result = new ResponseData((int)req.responseCode);
-            result.headers = ContentHeadersToList(req.GetResponseHeaders());
+            result.headers = HeadersToList(req.GetResponseHeaders());
             if (req.downloadHandler?.text != null)
                 result.content = req.downloadHandler.text;
 
             return result;
         }
 
-        private static List<Header> ContentHeadersToList(HttpContentHeaders headerCollection)
+        private static List<Header> HeadersToList(HttpHeaders headerCollection)
         {
             if (headerCollection == null)
                 return null;
@@ -69,7 +82,7 @@ namespace QuickEye.WebTools.Editor
                 .Select(p => new Header(p.Key, string.Join("; ", p.Value))));
         }
 
-        private static List<Header> ContentHeadersToList(Dictionary<string, string> dictionary)
+        private static List<Header> HeadersToList(Dictionary<string, string> dictionary)
         {
             if (dictionary == null)
                 return null;
